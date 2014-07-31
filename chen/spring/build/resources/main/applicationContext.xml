@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+       xmlns:cache="http://www.springframework.org/schema/cache"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+        http://www.springframework.org/schema/context
+        http://www.springframework.org/schema/context/spring-context.xsd
+        http://www.springframework.org/schema/tx
+        http://www.springframework.org/schema/tx/spring-tx.xsd
+        http://www.springframework.org/schema/cache
+        http://www.springframework.org/schema/cache/spring-cache.xsd">
+
+    <!-- 数据库连接相关配置 -->
+    <bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+        <!-- 基本JDBC属性 -->
+        <property name="driverClassName" value="oracle.jdbc.driver.OracleDriver"/>
+        <property name="url" value="jdbc:oracle:thin:@192.168.1.50:1521:xudb"/>
+        <property name="username" value="XUZHONG"/>
+        <property name="password" value="XUZHONG"/>
+        <!--配置大小，初始化、最小、最大-->
+        <property name="initialSize" value="5"/>
+        <property name="minIdle" value="1"/>
+        <property name="maxActive" value="20"/>
+        <!-- 配置获取连接等待超时的时间 -->
+        <property name="maxWait" value="60000"/>
+        <!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+        <property name="timeBetweenEvictionRunsMillis" value="60000"/>
+        <!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+        <property name="minEvictableIdleTimeMillis" value="300000"/>
+        <!-- 配置空闲检测等相关信息 -->
+        <property name="validationQuery" value="SELECT 1 FROM DUAL"/>
+        <property name="testWhileIdle" value="true"/>
+        <property name="testOnBorrow" value="false"/>
+        <property name="testOnReturn" value="false"/>
+        <!-- 打开PSCache，并且指定每个连接上PSCache的大小 -->
+        <property name="poolPreparedStatements" value="true"/>
+        <property name="maxPoolPreparedStatementPerConnectionSize" value="20"/>
+        <!-- 配置监控统计拦截的filters -->
+        <property name="proxyFilters">
+            <list>
+                <ref bean="stat-filter"/>
+                <ref bean="log-filter"/>
+            </list>
+        </property>
+    </bean>
+    <bean id="stat-filter" class="com.alibaba.druid.filter.stat.StatFilter"/>
+    <bean id="log-filter" class="com.alibaba.druid.filter.logging.Slf4jLogFilter">
+        <property name="connectionLogErrorEnabled" value="true"/>
+        <property name="statementLogErrorEnabled" value="true"/>
+        <property name="resultSetLogErrorEnabled" value="true"/>
+    </bean>
+
+    <!-- 以下是对注解和事务的配置 -->
+    <context:annotation-config/>
+    <context:component-scan base-package="com.tiza.chen.spring"/>
+    <tx:annotation-driven transaction-manager="txManager" proxy-target-class="true"/>
+    <bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+    <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate" scope="prototype">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <!--以下为Quartz调度配置 -->
+    <bean id="vehJobDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="vehicleDao"/>
+        <property name="targetMethod" value="queryAll"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+    <bean id="vehJobTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+        <property name="description" value="查询车辆列表"/>
+        <property name="jobDetail" ref="vehJobDetail"/>
+        <property name="group" value="group1"/>
+        <property name="repeatInterval" value="300000"/>
+        <property name="repeatCount" value="-1"/>
+        <property name="startDelay" value="3000"/>
+    </bean>
+
+    <bean id="stoJobDetail" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="storageDao"/>
+        <property name="targetMethod" value="queryAll"/>
+        <property name="concurrent" value="false"/>
+    </bean>
+    <bean id="stoJobTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+        <property name="description" value="查询仓库列表"/>
+        <property name="jobDetail" ref="stoJobDetail"/>
+        <property name="group" value="group2"/>
+        <property name="repeatInterval" value="300000"/>
+        <property name="repeatCount" value="-1"/>
+        <property name="startDelay" value="5000"/>
+    </bean>
+    <bean id="scheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <list>
+                <ref bean="vehJobTrigger"/>
+                <ref bean="stoJobTrigger"/>
+            </list>
+        </property>
+        <property name="configLocation" value="quartz.properties"/>
+    </bean>
+
+    <!-- 以下为Netty相关配置 -->
+    <bean id="socketAddress" class="java.net.InetSocketAddress">
+        <constructor-arg index="0" value="192.168.1.24"/>
+        <constructor-arg index="1" value="9800"/>
+    </bean>
+    <bean id="connectContain" class="com.tiza.chen.spring.nio.APConnector">
+        <constructor-arg index="0" ref="socketAddress"/>
+    </bean>
+
+    <!-- 以下为缓存相关配置 -->
+    <bean id="cacheManager" class="org.springframework.cache.guava.GuavaCacheManager">
+        <property name="cacheNames">
+            <list>
+                <value>vehicleCache</value>
+                <value>storageCache</value>
+            </list>
+        </property>
+    </bean>
+    <cache:annotation-driven cache-manager="cacheManager" />
+</beans>

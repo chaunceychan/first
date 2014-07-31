@@ -1,0 +1,24 @@
+rootProject.children.each { project ->
+    apply plugin: 'java'
+    apply plugin: 'idea'
+    apply plugin: 'maven'
+
+    compileJava {
+        sourceCompatibility = 1.6
+        targetCompatibility = 1.6
+    }
+    compileTestJava {
+        sourceCompatibility = 1.6
+        targetCompatibility = 1.6
+    }
+    ext.springVersion = '4.0.6.RELEASE'
+    ext.nettyVersion = '4.0.21.Final'
+
+    repositories {
+        mavenLocal()
+        maven {
+            url 'http://192.168.1.52:8765/nexus/content/groups/public'
+        }
+    }
+
+}

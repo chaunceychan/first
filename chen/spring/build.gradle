@@ -1,0 +1,35 @@
+dependencies {
+    compile "org.springframework:spring-core:$springVersion"
+    compile "org.springframework:spring-jdbc:$springVersion"
+    compile "org.springframework:spring-context:$springVersion"
+    compile "org.springframework:spring-context-support:$springVersion"
+    compile "org.springframework:spring-tx:$springVersion"
+    compile "org.springframework:spring-aop:$springVersion"
+    compile "org.springframework:spring-beans:$springVersion"
+    compile "org.springframework:spring-expression:$springVersion"
+    compile 'com.google.guava:guava:17.0'
+    compile 'com.alibaba:druid:1.0.6'
+    compile 'com.alibaba:fastjson:1.1.41'
+    compile 'ch.qos.logback:logback-core:1.1.2'
+    compile 'ch.qos.logback:logback-classic:1.1.2'
+    compile 'org.slf4j:slf4j-api:1.7.7'
+    compile 'oracle.jdbc:ojdbc:6.0.0'
+    compile "io.netty:netty-common:$nettyVersion"
+    compile "io.netty:netty-codec:$nettyVersion"
+    compile "io.netty:netty-buffer:$nettyVersion"
+    compile "io.netty:netty-handler:$nettyVersion"
+    compile "io.netty:netty-transport:$nettyVersion"
+    compile 'org.quartz-scheduler:quartz:2.2.1'
+    compile 'org.aspectj:aspectjweaver:1.7.4'
+}
+
+task copyToLib(type: Copy) {
+    into "$buildDir/libs/lib"
+    from configurations.compile
+}
+
+jar {
+    baseName = 'chen-spring'
+    version = '0.0.1'
+    dependsOn copyToLib
+}
